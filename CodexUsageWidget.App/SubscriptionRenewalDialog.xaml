@@ -1,0 +1,47 @@
+<Window x:Class="CodexUsageWidget.App.SubscriptionRenewalDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="サブスクリプション更新日"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        FontFamily="{StaticResource UiFont}">
+    <Border Padding="20" Background="#F7F8FA">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="160"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.ColumnSpan="2" Text="次回のサブスクリプション更新日時を入力します。"
+                       Foreground="#303843" Margin="0,0,0,16"/>
+
+            <TextBlock Grid.Row="1" Text="日付" VerticalAlignment="Center" Margin="0,0,14,0"/>
+            <DatePicker x:Name="RenewalDatePicker" Grid.Row="1" Grid.Column="1"
+                        SelectedDateFormat="Short"/>
+
+            <TextBlock Grid.Row="2" Text="時刻" VerticalAlignment="Center" Margin="0,12,14,0"/>
+            <TextBox x:Name="TimeTextBox" Grid.Row="2" Grid.Column="1" Margin="0,12,0,0"
+                     Text="00:00" VerticalContentAlignment="Center"/>
+
+            <Grid Grid.Row="3" Grid.ColumnSpan="2" Margin="0,18,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="ErrorText" Foreground="#B42318" Visibility="Collapsed" Margin="0,0,0,10"/>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="解除" Padding="12,5" Margin="0,0,8,0" Click="Clear_Click"/>
+                    <Button Content="キャンセル" Padding="12,5" Margin="0,0,8,0" IsCancel="True"/>
+                    <Button Content="保存" Padding="14,5" IsDefault="True" Click="Save_Click"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

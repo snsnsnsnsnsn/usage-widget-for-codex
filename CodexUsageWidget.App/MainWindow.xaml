@@ -1,0 +1,160 @@
+<Window x:Class="CodexUsageWidget.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Codex Usage Widget"
+        Width="230" SizeToContent="Height"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ResizeMode="NoResize"
+        ShowInTaskbar="False" Topmost="True"
+        FontFamily="{StaticResource UiFont}"
+        Loaded="Window_Loaded"
+        SizeChanged="Window_SizeChanged"
+        LocationChanged="Window_LocationChanged"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseLeftButtonUp="Window_MouseLeftButtonUp">
+
+    <Border x:Name="RootBorder" Margin="5" Padding="8"
+            Background="#F51A1E25" BorderBrush="#26FFFFFF" BorderThickness="1"
+            CornerRadius="10">
+        <Border.ContextMenu>
+            <ContextMenu Opened="ContextMenu_Opened">
+                <MenuItem Header="今すぐ更新" Click="Refresh_Click"/>
+                <Separator/>
+                <MenuItem x:Name="LockMenuItem" Header="位置を固定" IsCheckable="True" Click="Lock_Click"/>
+                <MenuItem x:Name="ClickThroughMenuItem" Header="クリックを透過" IsCheckable="True" Click="ClickThrough_Click"/>
+                <MenuItem x:Name="StartupMenuItem" Header="Windows起動時に開始" IsCheckable="True" Click="Startup_Click"/>
+                <MenuItem Header="サブスク更新日を設定…" Click="SubscriptionRenewal_Click"/>
+                <Separator/>
+                <MenuItem Header="Codex Usageを開く" Click="OpenUsage_Click"/>
+                <MenuItem Header="終了" Click="Exit_Click"/>
+            </ContextMenu>
+        </Border.ContextMenu>
+        <Border.ToolTip>
+            <ToolTip>
+                <StackPanel>
+                    <TextBlock Text="予測: 現在のペースを維持した場合の、リセット時点の消費率"/>
+                    <TextBlock Margin="0,4,0,0">
+                        <Run Text="取得元: "/><Run Text="{Binding SourceText, Mode=OneWay}" FontWeight="SemiBold"/>
+                        <Run Text="  更新: "/><Run Text="{Binding UpdatedText, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0">
+                        <Run Text="5h "/><Run Text="{Binding FiveHour.ResetText, Mode=OneWay}"/>
+                        <Run Text="  /  week "/><Run Text="{Binding Weekly.ResetText, Mode=OneWay}"/>
+                    </TextBlock>
+                </StackPanel>
+            </ToolTip>
+        </Border.ToolTip>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="5"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="70"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Codex" Foreground="#F4F7FB"
+                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="5h" Foreground="#929CAA"
+                       FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="week" Foreground="#929CAA"
+                       FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+
+            <Grid Grid.Row="2" Grid.ColumnSpan="3">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="30"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Row="0" Text="残量" Foreground="#929CAA" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FiveHour.PercentText, Mode=OneWay}"
+                           Foreground="#F4F7FB" FontSize="15" FontWeight="SemiBold"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Weekly.PercentText, Mode=OneWay}"
+                           Foreground="#F4F7FB" FontSize="15" FontWeight="SemiBold"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Row="1" Text="ペース" Foreground="#929CAA" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FiveHour.PaceText, Mode=OneWay}"
+                           Foreground="{Binding FiveHour.PaceBrush, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Weekly.PaceText, Mode=OneWay}"
+                           Foreground="{Binding Weekly.PaceBrush, Mode=OneWay}" FontSize="13" FontWeight="SemiBold"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Row="2" Text="リセット" Foreground="#929CAA" FontSize="11" VerticalAlignment="Center"/>
+                <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding FiveHour.ResetDatePart, Mode=OneWay}" Foreground="#788391"
+                               FontSize="10.5" HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Row="1" Text="{Binding FiveHour.ResetTimePart, Mode=OneWay}" Foreground="#788391"
+                               FontSize="10.5" HorizontalAlignment="Right"/>
+                </Grid>
+                <Grid Grid.Row="2" Grid.Column="2" VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding Weekly.ResetDatePart, Mode=OneWay}" Foreground="#788391"
+                               FontSize="10.5" HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Row="1" Text="{Binding Weekly.ResetTimePart, Mode=OneWay}" Foreground="#788391"
+                               FontSize="10.5" HorizontalAlignment="Right"/>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Row="2" Grid.ColumnSpan="3" VerticalAlignment="Center">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="利用状況" Foreground="#929CAA" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding StatusMessage, Mode=OneWay}"
+                           Foreground="#D7DDE5" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+
+            <Border Grid.Row="3" Grid.ColumnSpan="3" Height="1" Margin="0,5,0,5" Background="#26FFFFFF"/>
+
+            <TextBlock Grid.Row="4" Text="サブスク更新" Foreground="#929CAA" FontSize="11" VerticalAlignment="Center"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                       Text="{Binding SubscriptionRenewalValueText, Mode=OneWay}"
+                       Foreground="#D7DDE5" FontSize="11" FontWeight="SemiBold"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        </Grid>
+    </Border>
+</Window>
