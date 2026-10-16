@@ -11,12 +11,12 @@
         <SolidColorBrush x:Key="TextLabel" Color="#929CAA"/>
         <SolidColorBrush x:Key="TextMuted" Color="#8A95A3"/>
 
-        <!-- 1つの利用枠: ゲージ（塗り=残り利用量、縦線=残り時間）・（リセット / ペース）。正確な残量%はツールチップ -->
+        <!-- 1つの利用枠: 二段ゲージ（上=残り利用量、下=残り時間）・（リセット / ペース）。正確な残量%はツールチップ -->
         <DataTemplate x:Key="LimitCell">
             <StackPanel Margin="0,4,0,6">
                 <controls:UsageGauge Remaining="{Binding RemainingPercent, Mode=OneWay}"
                                      TimeRemaining="{Binding TimeRemainingPercent, Mode=OneWay}"
-                                     Fill="{Binding GaugeBrush, Mode=OneWay}"/>
+                                     Fill="{Binding PaceBrush, Mode=OneWay}"/>
                 <Grid Margin="0,3,0,0"
                       Visibility="{Binding Options.ShowDetailLine, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">

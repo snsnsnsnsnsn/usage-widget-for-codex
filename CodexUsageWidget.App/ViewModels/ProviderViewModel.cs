@@ -152,7 +152,7 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
             AddLimitLine("5h", FiveHour);
             AddLimitLine("週", Weekly);
             if (ModelLimitName is not null) AddLimitLine($"{ModelLimitName}（週間）", ModelLimit);
-            lines.Add("ゲージ: 塗り = 残り利用量、縦線 = 残り時間。塗りが縦線より右なら余裕");
+            lines.Add("ゲージ: 上 = 残り利用量、下 = 残り時間。上が下より長ければ余裕");
             lines.Add("ペース: 今のペースを続けた場合の、リセット時点の消費率（100%超で使い切る見込み）");
         }
         return string.Join(Environment.NewLine, lines);

@@ -14,35 +14,32 @@ public sealed class LimitViewModel : NotifyBase
     private static readonly Brush Bad = Frozen(244, 91, 105);
 
     private double _remainingPercent;
+    private double _timeRemainingPercent = double.NaN;
     private bool _hasWindow;
     private string _percentText = "--%";
     private string _windowLabel = string.Empty;
-    private Brush _accentBrush = Neutral;
-    private Brush _gaugeBrush = Neutral;
-    private double _timeRemainingPercent = double.NaN;
-    private int _windowMinutes;
     private string _paceShortText = string.Empty;
     private Brush _paceBrush = Neutral;
     private string _resetShortText = string.Empty;
     private string _resetDateText = "--/-- --:--";
     private string _resetText = "データ待機中";
     private DateTimeOffset? _resetsAt;
+    private int _windowMinutes;
 
     public LimitViewModel(DisplayOptions options) => Options = options;
 
     public DisplayOptions Options { get; }
+    /// <summary>残り利用量（0〜100）。ゲージ上段。</summary>
     public double RemainingPercent { get => _remainingPercent; private set => Set(ref _remainingPercent, value); }
+    /// <summary>リセットまでの残り時間の割合（0〜100）。ゲージ下段。不明ならNaN。</summary>
+    public double TimeRemainingPercent { get => _timeRemainingPercent; private set => Set(ref _timeRemainingPercent, value); }
     /// <summary>この利用枠が存在するか。ないときにバーを空（=使い切り）と誤読させないため、セルごと隠す。</summary>
     public bool HasWindow { get => _hasWindow; private set => Set(ref _hasWindow, value); }
     public string PercentText { get => _percentText; private set => Set(ref _percentText, value); }
     /// <summary>行ラベルと長さが違う枠（例: 30日枠）のときだけ出す。</summary>
     public string WindowLabel { get => _windowLabel; private set => Set(ref _windowLabel, value); }
-    public Brush AccentBrush { get => _accentBrush; private set => Set(ref _accentBrush, value); }
-    /// <summary>ゲージの塗り色。ペースが分かればペースの色、まだ分からなければ残量の色。</summary>
-    public Brush GaugeBrush { get => _gaugeBrush; private set => Set(ref _gaugeBrush, value); }
-    /// <summary>リセットまでの残り時間の割合（0〜100）。ゲージの縦線の位置。不明ならNaN。</summary>
-    public double TimeRemainingPercent { get => _timeRemainingPercent; private set => Set(ref _timeRemainingPercent, value); }
     public string PaceShortText { get => _paceShortText; private set => Set(ref _paceShortText, value); }
+    /// <summary>ペースの色。ゲージ上段の塗りにも使い、文字とゲージの色を常に一致させる。</summary>
     public Brush PaceBrush { get => _paceBrush; private set => Set(ref _paceBrush, value); }
     /// <summary>24時間以内なら時刻、それより先なら日付だけ。</summary>
     public string ResetShortText { get => _resetShortText; private set => Set(ref _resetShortText, value); }
@@ -56,16 +53,14 @@ public sealed class LimitViewModel : NotifyBase
         if (window is null)
         {
             RemainingPercent = 0;
+            TimeRemainingPercent = double.NaN;
             PercentText = "--%";
             WindowLabel = string.Empty;
-            AccentBrush = Neutral;
             PaceShortText = string.Empty;
             PaceBrush = Neutral;
             ResetDateText = "--/-- --:--";
             ResetShortText = string.Empty;
             ResetText = "利用枠なし";
-            GaugeBrush = Neutral;
-            TimeRemainingPercent = double.NaN;
             _resetsAt = null;
             _windowMinutes = 0;
             return;
@@ -74,18 +69,10 @@ public sealed class LimitViewModel : NotifyBase
         RemainingPercent = window.RemainingPercent;
         PercentText = $"{Math.Round(RemainingPercent):0}%";
         WindowLabel = window.NonStandardLabel ?? string.Empty;
-        AccentBrush = RemainingPercent switch
-        {
-            > 50 => Good,
-            > 20 => Warn,
-            _ => Bad
-        };
         _resetsAt = window.ResetsAt;
         _windowMinutes = window.WindowMinutes;
         ResetDateText = _resetsAt?.ToLocalTime().ToString("MM/dd HH:mm") ?? "--/-- --:--";
-        var projected = window.ProjectedConsumptionPercent(observedAt);
-        UpdatePace(projected);
-        GaugeBrush = projected is null ? AccentBrush : PaceBrush;
+        UpdatePace(window.ProjectedConsumptionPercent(observedAt));
         UpdateCountdown();
     }
 

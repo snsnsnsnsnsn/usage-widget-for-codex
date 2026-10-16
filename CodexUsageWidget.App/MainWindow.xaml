@@ -31,13 +31,13 @@
                     <RowDefinition Height="Auto" SharedSizeGroup="Renewal"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="1" Text="5h" Foreground="{StaticResource TextLabel}"
-                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,1.5,0,0"
                            Visibility="{Binding Options.ShowFiveHour, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="2" Text="週" Foreground="{StaticResource TextLabel}"
-                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,1.5,0,0"
                            Visibility="{Binding Options.ShowWeekly, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="3" Text="{Binding ModelRowLabel, Mode=OneWay}" Foreground="{StaticResource TextLabel}"
-                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,1.5,0,0"
                            Visibility="{Binding ShowModelRow, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="4" Text="更新" Foreground="{StaticResource TextLabel}"
                            FontSize="12" Margin="0,3,0,2" VerticalAlignment="Center"
