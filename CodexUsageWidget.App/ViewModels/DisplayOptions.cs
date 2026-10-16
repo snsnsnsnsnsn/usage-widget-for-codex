@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using CodexUsageWidget.App.Models;
 
 namespace CodexUsageWidget.App.ViewModels;
@@ -10,8 +9,7 @@ public sealed class DisplayOptions : NotifyBase
     private bool _showClaude = true;
     private bool _showFiveHour = true;
     private bool _showWeekly = true;
-    private bool _showReset = true;
-    private bool _showPace = true;
+    private bool _showCountdown = true;
     private bool _showRenewal = true;
     private bool _showModelLimit = true;
 
@@ -23,20 +21,8 @@ public sealed class DisplayOptions : NotifyBase
     /// <summary>ClaudeのFableなど、特定モデルだけに掛かる週間枠。</summary>
     public bool ShowModelLimit { get => _showModelLimit; set => Set(ref _showModelLimit, value); }
 
-    public bool ShowReset
-    {
-        get => _showReset;
-        set { if (Set(ref _showReset, value)) OnPropertyChanged(nameof(ShowDetailLine)); }
-    }
-
-    public bool ShowPace
-    {
-        get => _showPace;
-        set { if (Set(ref _showPace, value)) OnPropertyChanged(nameof(ShowDetailLine)); }
-    }
-
-    [JsonIgnore]
-    public bool ShowDetailLine => ShowReset || ShowPace;
+    /// <summary>リセットまでの残り時間（例: あと2日3時間）。</summary>
+    public bool ShowCountdown { get => _showCountdown; set => Set(ref _showCountdown, value); }
 
     public bool IsShown(ProviderKind kind) => kind == ProviderKind.Claude ? ShowClaude : ShowCodex;
 }

@@ -57,7 +57,7 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     public bool IsEnabled { get => _isEnabled; private set => Set(ref _isEnabled, value); }
     public bool HasData { get => _hasData; private set => Set(ref _hasData, value); }
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
-    /// <summary>ホバー時の表。枠ごとに「残り」と「リセットまで」を並べる。</summary>
+    /// <summary>ホバー時の表。枠ごとの正確な残り%。</summary>
     public IReadOnlyList<TooltipRow> TooltipRows { get => _tooltipRows; private set { if (!_tooltipRows.SequenceEqual(value)) { _tooltipRows = value; OnPropertyChanged(nameof(TooltipRows)); } } }
     /// <summary>ホバー時の最終行。いつの値か、取得できない理由など。</summary>
     public string TooltipFooter { get => _tooltipFooter; private set => Set(ref _tooltipFooter, value); }
@@ -155,7 +155,7 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
         void AddRow(string label, LimitViewModel limit)
         {
             if (!limit.HasWindow) return;
-            rows.Add(new TooltipRow(limit.WindowLabel.Length > 0 ? limit.WindowLabel : label, $"残り{limit.PercentText}", limit.ResetText));
+            rows.Add(new TooltipRow(limit.WindowLabel.Length > 0 ? limit.WindowLabel : label, $"残り{limit.PercentText}"));
         }
     }
 
@@ -173,4 +173,4 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     }
 }
 
-public sealed record TooltipRow(string Label, string Remaining, string UntilReset);
+public sealed record TooltipRow(string Label, string Remaining);

@@ -18,10 +18,7 @@ public sealed class LimitViewModel : NotifyBase
     private bool _hasWindow;
     private string _percentText = "--%";
     private string _windowLabel = string.Empty;
-    private string _paceShortText = string.Empty;
     private Brush _paceBrush = Neutral;
-    private string _resetShortText = string.Empty;
-    private string _resetDateText = "--/-- --:--";
     private string _resetText = "データ待機中";
     private DateTimeOffset? _resetsAt;
     private int _windowMinutes;
@@ -38,13 +35,9 @@ public sealed class LimitViewModel : NotifyBase
     public string PercentText { get => _percentText; private set => Set(ref _percentText, value); }
     /// <summary>行ラベルと長さが違う枠（例: 30日枠）のときだけ出す。</summary>
     public string WindowLabel { get => _windowLabel; private set => Set(ref _windowLabel, value); }
-    public string PaceShortText { get => _paceShortText; private set => Set(ref _paceShortText, value); }
-    /// <summary>ペースの色。ゲージ上段の塗りにも使い、文字とゲージの色を常に一致させる。</summary>
+    /// <summary>ペース（今のペースで使い切るか）の色。ゲージ上段の塗りに使う。</summary>
     public Brush PaceBrush { get => _paceBrush; private set => Set(ref _paceBrush, value); }
-    /// <summary>24時間以内なら時刻、それより先なら日付だけ。</summary>
-    public string ResetShortText { get => _resetShortText; private set => Set(ref _resetShortText, value); }
-    public string ResetDateText { get => _resetDateText; private set => Set(ref _resetDateText, value); }
-    /// <summary>リセットまでの残り時間（ツールチップ用）。例: あと2日3時間</summary>
+    /// <summary>リセットまでの残り時間。例: あと2日3時間</summary>
     public string ResetText { get => _resetText; private set => Set(ref _resetText, value); }
 
     public void Update(RateLimitWindow? window, DateTimeOffset observedAt)
@@ -56,11 +49,8 @@ public sealed class LimitViewModel : NotifyBase
             TimeRemainingPercent = double.NaN;
             PercentText = "--%";
             WindowLabel = string.Empty;
-            PaceShortText = string.Empty;
             PaceBrush = Neutral;
-            ResetDateText = "--/-- --:--";
-            ResetShortText = string.Empty;
-            ResetText = "利用枠なし";
+            ResetText = string.Empty;
             _resetsAt = null;
             _windowMinutes = 0;
             return;
@@ -71,7 +61,6 @@ public sealed class LimitViewModel : NotifyBase
         WindowLabel = window.NonStandardLabel ?? string.Empty;
         _resetsAt = window.ResetsAt;
         _windowMinutes = window.WindowMinutes;
-        ResetDateText = _resetsAt?.ToLocalTime().ToString("MM/dd HH:mm") ?? "--/-- --:--";
         UpdatePace(window.ProjectedConsumptionPercent(observedAt));
         UpdateCountdown();
     }
@@ -80,13 +69,10 @@ public sealed class LimitViewModel : NotifyBase
     {
         if (projectedConsumptionPercent is not double projected)
         {
-            PaceShortText = string.Empty;
             PaceBrush = Neutral;
             return;
         }
 
-        var rounded = Math.Round(projected);
-        PaceShortText = rounded > 999 ? "ペース999%+" : $"ペース{rounded:0}%";
         PaceBrush = projected switch
         {
             > 100 => Bad,
@@ -99,7 +85,7 @@ public sealed class LimitViewModel : NotifyBase
     {
         if (_resetsAt is not DateTimeOffset resetsAt)
         {
-            if (PercentText != "--%") ResetText = "リセット時刻なし";
+            ResetText = string.Empty;
             TimeRemainingPercent = double.NaN;
             return;
         }
@@ -108,8 +94,7 @@ public sealed class LimitViewModel : NotifyBase
         TimeRemainingPercent = _windowMinutes > 0
             ? Math.Round(Math.Clamp(remaining.TotalMinutes / _windowMinutes * 100d, 0d, 100d), 1)
             : double.NaN;
-        var local = resetsAt.ToLocalTime();
-        ResetShortText = remaining.TotalDays < 1 ? local.ToString("HH:mm") : local.ToString("MM/dd");
+
         ResetText = remaining <= TimeSpan.Zero ? "まもなくリセット" :
             remaining.TotalDays >= 1 ? $"あと{(int)remaining.TotalDays}日{remaining.Hours}時間" :
             remaining.TotalHours >= 1 ? $"あと{(int)remaining.TotalHours}時間{remaining.Minutes}分" :

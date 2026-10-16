@@ -1,4 +1,4 @@
-using CodexUsageWidget.App.Models;
+﻿using CodexUsageWidget.App.Models;
 using CodexUsageWidget.App.Services;
 using System.Text.Json;
 
@@ -105,9 +105,9 @@ Check(desktopToken?.AccessToken == "full" && desktopToken.ExpiresAt == DateTimeO
 
 var displaySettings = new WidgetSettings();
 displaySettings.Display.ShowClaude = false;
-displaySettings.Display.ShowPace = false;
+displaySettings.Display.ShowCountdown = false;
 var restoredDisplay = JsonSerializer.Deserialize<WidgetSettings>(JsonSerializer.Serialize(displaySettings))?.Display;
-Check(restoredDisplay is { ShowClaude: false, ShowPace: false, ShowCodex: true, ShowReset: true, ShowDetailLine: true },
+Check(restoredDisplay is { ShowClaude: false, ShowCountdown: false, ShowCodex: true, ShowFiveHour: true },
     "表示項目の切り替えを保存できる");
 Check(JsonSerializer.Deserialize<WidgetSettings>("""{"RefreshSeconds":30}""")?.Display is { ShowCodex: true, ShowClaude: true },
     "表示項目がない旧設定では全項目を表示する");

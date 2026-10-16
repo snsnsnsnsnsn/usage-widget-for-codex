@@ -75,8 +75,7 @@ public partial class MainWindow : Window, IDisposable
             Toggle("週間枠", () => options.ShowWeekly, v => options.ShowWeekly = v, () => options.ShowFiveHour),
             Toggle("モデル別の週間枠（Fableなど）", () => options.ShowModelLimit, v => options.ShowModelLimit = v),
             new Forms.ToolStripSeparator(),
-            Toggle("リセット時刻", () => options.ShowReset, v => options.ShowReset = v),
-            Toggle("ペース", () => options.ShowPace, v => options.ShowPace = v),
+            Toggle("リセットまでの残り時間", () => options.ShowCountdown, v => options.ShowCountdown = v),
             Toggle("サブスク更新日", () => options.ShowRenewal, v => options.ShowRenewal = v)
         ]);
         // 続けて切り替えられるよう、項目のクリックでは閉じない。
@@ -213,8 +212,7 @@ public partial class MainWindow : Window, IDisposable
     private void Metric_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(LimitViewModel.PercentText) or
-            nameof(LimitViewModel.PaceShortText) or
-            nameof(LimitViewModel.ResetShortText))
+            nameof(LimitViewModel.ResetText))
         {
             ScheduleFitToContent();
         }

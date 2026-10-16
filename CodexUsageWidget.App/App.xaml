@@ -11,34 +11,34 @@
         <SolidColorBrush x:Key="TextLabel" Color="#929CAA"/>
         <SolidColorBrush x:Key="TextMuted" Color="#8A95A3"/>
 
-        <!-- 1つの利用枠: 二段ゲージ（上=残り利用量、下=残り時間）・（リセット / ペース）。正確な残量%はツールチップ -->
+        <!-- 1つの利用枠: 二段ゲージ（上=残り利用量、下=残り時間）・リセットまでの残り時間。正確な残量%はツールチップ -->
         <DataTemplate x:Key="LimitCell">
             <StackPanel Margin="0,4,0,6">
                 <controls:UsageGauge Remaining="{Binding RemainingPercent, Mode=OneWay}"
                                      TimeRemaining="{Binding TimeRemainingPercent, Mode=OneWay}"
                                      Fill="{Binding PaceBrush, Mode=OneWay}"/>
-                <Grid Margin="0,3,0,0"
-                      Visibility="{Binding Options.ShowDetailLine, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                        <TextBlock Text="{Binding WindowLabel, Mode=OneWay}" Foreground="{StaticResource TextMuted}"
-                                   FontSize="11.5" Margin="0,0,5,0">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding WindowLabel}" Value="">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <TextBlock Text="{Binding ResetShortText, Mode=OneWay}" Foreground="{StaticResource TextMuted}"
-                                   FontSize="11.5"
-                                   Visibility="{Binding Options.ShowReset, Converter={StaticResource BoolToVisibility}}"/>
-                    </StackPanel>
-                    <TextBlock Text="{Binding PaceShortText, Mode=OneWay}" Foreground="{Binding PaceBrush, Mode=OneWay}"
-                               FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right"
-                               Visibility="{Binding Options.ShowPace, Converter={StaticResource BoolToVisibility}}"/>
+                <Grid Margin="0,3,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding WindowLabel, Mode=OneWay}" Foreground="{StaticResource TextMuted}"
+                               FontSize="11.5">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowLabel}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <!-- 下段（残り時間）のバーと同じ色で、リセットまでの残り時間 -->
+                    <TextBlock Grid.Column="2" Text="{Binding ResetText, Mode=OneWay}" Foreground="#C9D1DC"
+                               FontSize="11.5" HorizontalAlignment="Right" Margin="12,0,0,0"
+                               Visibility="{Binding Options.ShowCountdown, Converter={StaticResource BoolToVisibility}}"/>
                 </Grid>
             </StackPanel>
         </DataTemplate>

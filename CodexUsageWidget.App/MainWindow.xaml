@@ -55,7 +55,7 @@
                         <Grid MinWidth="116" Margin="16,0,0,0" Background="Transparent"
                               Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibility}}"
                               ToolTipService.ShowDuration="30000">
-                            <!-- ホバー: 枠 / 残り / リセットまで の表と、いつの値かの1行だけ -->
+                            <!-- ホバー: 枠ごとの正確な残り%と、いつの値かの1行だけ -->
                             <Grid.ToolTip>
                                 <ToolTip Padding="10,7">
                                     <StackPanel Grid.IsSharedSizeScope="True">
@@ -66,12 +66,10 @@
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="TipLabel"/>
                                                             <ColumnDefinition Width="Auto" SharedSizeGroup="TipRemaining"/>
-                                                            <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,0,12,0"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding Remaining}"
-                                                                   HorizontalAlignment="Right" Margin="0,0,12,0"/>
-                                                        <TextBlock Grid.Column="2" Text="{Binding UntilReset}"/>
+                                                                   HorizontalAlignment="Right"/>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>

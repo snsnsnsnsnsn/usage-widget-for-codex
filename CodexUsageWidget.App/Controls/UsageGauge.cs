@@ -14,9 +14,9 @@ namespace CodexUsageWidget.App.Controls;
 /// </summary>
 public sealed class UsageGauge : FrameworkElement
 {
-    private const double UsageHeight = 8;
+    private const double UsageHeight = 6;
     private const double Gap = 2;
-    private const double TimeHeight = 3;
+    private const double TimeHeight = 4.5;
     private static readonly Brush TrackBrush = Frozen(Color.FromArgb(0x2E, 0xFF, 0xFF, 0xFF));
     private static readonly Brush TimeBrush = Frozen(Color.FromArgb(0xB3, 0xC9, 0xD1, 0xDC));
 
