@@ -14,12 +14,12 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     private bool _refreshing;
     private bool _isEnabled;
     private DateTimeOffset? _observedAt;
-    private string? _sourceDetail;
-    private string _sourceText = "WAIT";
-    private string _updatedText = "取得中…";
+    private bool _isLocalSource;
+    private bool _isStale;
     private bool _hasData;
     private string _statusMessage = "取得中…";
-    private string _detailText = string.Empty;
+    private IReadOnlyList<TooltipRow> _tooltipRows = [];
+    private string _tooltipFooter = string.Empty;
     private string? _modelLimitName;
     private DateTime? _renewalAt;
     private string _renewalText = "—";
@@ -57,7 +57,10 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     public bool IsEnabled { get => _isEnabled; private set => Set(ref _isEnabled, value); }
     public bool HasData { get => _hasData; private set => Set(ref _hasData, value); }
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
-    public string DetailText { get => _detailText; private set => Set(ref _detailText, value); }
+    /// <summary>ホバー時の表。枠ごとに「残り」と「リセットまで」を並べる。</summary>
+    public IReadOnlyList<TooltipRow> TooltipRows { get => _tooltipRows; private set { if (!_tooltipRows.SequenceEqual(value)) { _tooltipRows = value; OnPropertyChanged(nameof(TooltipRows)); } } }
+    /// <summary>ホバー時の最終行。いつの値か、取得できない理由など。</summary>
+    public string TooltipFooter { get => _tooltipFooter; private set => Set(ref _tooltipFooter, value); }
     public bool HasRenewal => _renewalAt is not null;
     public string RenewalText { get => _renewalText; private set => Set(ref _renewalText, value); }
 
@@ -89,21 +92,20 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
                 ModelLimit.Update(snapshot.ModelLimit?.Window, snapshot.ObservedAt);
                 ModelLimitName = snapshot.ModelLimit?.ModelName;
                 _observedAt = snapshot.ObservedAt;
-                _sourceDetail = snapshot.Detail;
-                _sourceText = snapshot.Source == UsageSource.LocalSession ? "LOCAL" : "LIVE";
+                _isLocalSource = snapshot.Source == UsageSource.LocalSession;
+                _isStale = false;
                 StatusMessage = string.Empty;
             }
             else if (HasData && _observedAt is { } observedAt && DateTimeOffset.UtcNow - observedAt < StaleAfter)
             {
                 // 一時的な失敗では直前の値を残し、ツールチップで理由を示す。
-                _sourceText = "STALE";
+                _isStale = true;
                 StatusMessage = result.Message ?? "使用量を取得できません";
             }
             else
             {
                 HasData = false;
-                _sourceText = "NO DATA";
-                _sourceDetail = null;
+                _isStale = false;
                 StatusMessage = result.Message ?? "使用量を取得できません";
             }
             Tick();
@@ -127,44 +129,41 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
         FiveHour.UpdateCountdown();
         Weekly.UpdateCountdown();
         ModelLimit.UpdateCountdown();
-        if (_observedAt is { } observedAt)
-        {
-            var age = DateTimeOffset.UtcNow - observedAt;
-            _updatedText = age.TotalSeconds < 5 ? "たった今" :
-                age.TotalMinutes < 1 ? $"{Math.Max(1, (int)age.TotalSeconds)}秒前" :
-                age.TotalHours < 1 ? $"{(int)age.TotalMinutes}分前" :
-                age.TotalDays < 1 ? $"{(int)age.TotalHours}時間前" :
-                $"{(int)age.TotalDays}日前";
-        }
-        DetailText = BuildDetailText();
+        UpdateTooltip();
     }
 
-    private string BuildDetailText()
+    private void UpdateTooltip()
     {
-        var lines = new List<string>
+        if (!HasData)
         {
-            $"{Name}  取得元: {_sourceText}{(_sourceDetail is null ? string.Empty : $"（{_sourceDetail}）")}"
-        };
-        if (_observedAt is not null) lines.Add($"更新: {_updatedText}");
-        if (!string.IsNullOrEmpty(StatusMessage)) lines.Add(StatusMessage);
-        if (HasData)
-        {
-            AddLimitLine("5h", FiveHour);
-            AddLimitLine("週", Weekly);
-            if (ModelLimitName is not null) AddLimitLine($"{ModelLimitName}（週間）", ModelLimit);
-            lines.Add("ゲージ: 上 = 残り利用量、下 = 残り時間。上が下より長ければ余裕");
-            lines.Add("ペース: 今のペースを続けた場合の、リセット時点の消費率（100%超で使い切る見込み）");
+            TooltipRows = [];
+            TooltipFooter = StatusMessage;
+            return;
         }
-        return string.Join(Environment.NewLine, lines);
 
-        void AddLimitLine(string label, LimitViewModel limit)
+        var rows = new List<TooltipRow>();
+        AddRow("5h", FiveHour);
+        AddRow("週", Weekly);
+        if (ModelLimitName is not null) AddRow(ModelLimitName, ModelLimit);
+        TooltipRows = rows;
+
+        var updated = _observedAt is { } observedAt ? $"更新 {FormatAge(DateTimeOffset.UtcNow - observedAt)}" : string.Empty;
+        TooltipFooter = _isStale ? $"{updated}（{StatusMessage}）" :
+            _isLocalSource ? $"{updated}（PC内の記録）" :
+            updated;
+
+        void AddRow(string label, LimitViewModel limit)
         {
             if (!limit.HasWindow) return;
-            var window = limit.WindowLabel.Length > 0 ? $"（{limit.WindowLabel}）" : string.Empty;
-            lines.Add($"{label}{window} 残り{limit.PercentText}  リセット: {limit.ResetDateText}（{limit.ResetText}）");
+            rows.Add(new TooltipRow(limit.WindowLabel.Length > 0 ? limit.WindowLabel : label, $"残り{limit.PercentText}", limit.ResetText));
         }
     }
 
+    private static string FormatAge(TimeSpan age) =>
+        age.TotalMinutes < 1 ? "たった今" :
+        age.TotalHours < 1 ? $"{(int)age.TotalMinutes}分前" :
+        age.TotalDays < 1 ? $"{(int)age.TotalHours}時間前" :
+        $"{(int)age.TotalDays}日前";
     public void Dispose()
     {
         _refreshTimer.Stop();
@@ -173,3 +172,5 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
         _provider.Dispose();
     }
 }
+
+public sealed record TooltipRow(string Label, string Remaining, string UntilReset);

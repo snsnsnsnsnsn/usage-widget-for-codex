@@ -44,7 +44,7 @@ public sealed class LimitViewModel : NotifyBase
     /// <summary>24時間以内なら時刻、それより先なら日付だけ。</summary>
     public string ResetShortText { get => _resetShortText; private set => Set(ref _resetShortText, value); }
     public string ResetDateText { get => _resetDateText; private set => Set(ref _resetDateText, value); }
-    /// <summary>リセットまでのカウントダウン（ツールチップ用）。</summary>
+    /// <summary>リセットまでの残り時間（ツールチップ用）。例: あと2日3時間</summary>
     public string ResetText { get => _resetText; private set => Set(ref _resetText, value); }
 
     public void Update(RateLimitWindow? window, DateTimeOffset observedAt)
@@ -110,9 +110,10 @@ public sealed class LimitViewModel : NotifyBase
             : double.NaN;
         var local = resetsAt.ToLocalTime();
         ResetShortText = remaining.TotalDays < 1 ? local.ToString("HH:mm") : local.ToString("MM/dd");
-        ResetText = remaining <= TimeSpan.Zero ? "更新を確認中…" :
-            remaining.TotalDays >= 1 ? $"あと {(int)remaining.TotalDays}日 {remaining.Hours:00}:{remaining.Minutes:00}" :
-            $"あと {(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00}";
+        ResetText = remaining <= TimeSpan.Zero ? "まもなくリセット" :
+            remaining.TotalDays >= 1 ? $"あと{(int)remaining.TotalDays}日{remaining.Hours}時間" :
+            remaining.TotalHours >= 1 ? $"あと{(int)remaining.TotalHours}時間{remaining.Minutes}分" :
+            $"あと{Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes))}分";
     }
 
     private static Brush Frozen(byte r, byte g, byte b)
