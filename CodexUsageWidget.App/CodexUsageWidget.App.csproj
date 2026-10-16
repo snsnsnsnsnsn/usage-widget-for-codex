@@ -8,10 +8,10 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>CodexUsageWidget</AssemblyName>
     <RootNamespace>CodexUsageWidget.App</RootNamespace>
-    <Product>Usage Widget for Codex</Product>
-    <Description>An unofficial Windows desktop widget for viewing Codex usage limits.</Description>
+    <Product>Usage Widget for Codex &amp; Claude</Product>
+    <Description>An unofficial Windows desktop widget for viewing Codex and Claude usage limits side by side.</Description>
     <Authors>snsnsnsnsnsn</Authors>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <RepositoryUrl>https://github.com/snsnsnsnsnsn/usage-widget-for-codex</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <ApplicationManifest>app.manifest</ApplicationManifest>

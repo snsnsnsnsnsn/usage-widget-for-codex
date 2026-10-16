@@ -4,5 +4,59 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <FontFamily x:Key="UiFont">Segoe UI, Yu Gothic UI</FontFamily>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <SolidColorBrush x:Key="TextPrimary" Color="#F4F7FB"/>
+        <SolidColorBrush x:Key="TextLabel" Color="#929CAA"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#8A95A3"/>
+
+        <Style x:Key="UsageBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="5"/>
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border x:Name="PART_Track" Background="#24FFFFFF" CornerRadius="2.5"/>
+                            <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}"
+                                    CornerRadius="2.5" HorizontalAlignment="Left"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 1つの利用枠: 残量バー・（リセット / ペース）。正確な残量%はツールチップ -->
+        <DataTemplate x:Key="LimitCell">
+            <StackPanel Margin="0,7,0,6">
+                <ProgressBar Style="{StaticResource UsageBar}"
+                             Value="{Binding RemainingPercent, Mode=OneWay}"
+                             Foreground="{Binding AccentBrush, Mode=OneWay}"/>
+                <Grid Margin="0,4,0,0"
+                      Visibility="{Binding Options.ShowDetailLine, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding WindowLabel, Mode=OneWay}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5" Margin="0,0,5,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding WindowLabel}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding ResetShortText, Mode=OneWay}" Foreground="{StaticResource TextMuted}"
+                                   FontSize="10.5"
+                                   Visibility="{Binding Options.ShowReset, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding PaceShortText, Mode=OneWay}" Foreground="{Binding PaceBrush, Mode=OneWay}"
+                               FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Right"
+                               Visibility="{Binding Options.ShowPace, Converter={StaticResource BoolToVisibility}}"/>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
     </Application.Resources>
 </Application>

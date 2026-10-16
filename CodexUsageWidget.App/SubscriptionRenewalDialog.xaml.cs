@@ -5,9 +5,10 @@ namespace CodexUsageWidget.App;
 
 public partial class SubscriptionRenewalDialog : Window
 {
-    public SubscriptionRenewalDialog(DateTime? currentValue)
+    public SubscriptionRenewalDialog(string providerName, DateTime? currentValue)
     {
         InitializeComponent();
+        Title = $"{providerName} のサブスクリプション更新日";
         RenewalDatePicker.SelectedDate = currentValue?.Date ?? DateTime.Today;
         TimeTextBox.Text = currentValue?.ToString("HH:mm") ?? "00:00";
     }

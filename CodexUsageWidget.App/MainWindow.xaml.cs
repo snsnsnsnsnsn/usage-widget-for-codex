@@ -20,10 +20,9 @@ public partial class MainWindow : Window, IDisposable
     private readonly SettingsService _settingsService;
     private readonly WidgetSettings _settings;
     private readonly Forms.NotifyIcon _trayIcon;
-    private readonly Forms.ToolStripMenuItem _trayShowItem;
-    private readonly Forms.ToolStripMenuItem _trayLockItem;
-    private readonly Forms.ToolStripMenuItem _trayClickThroughItem;
-    private readonly Forms.ToolStripMenuItem _trayStartupItem;
+    private readonly Forms.ContextMenuStrip _menu;
+    private readonly Forms.ToolStripMenuItem _showItem;
+    private readonly List<Action> _menuCheckSyncs = [];
     private readonly System.Windows.Threading.DispatcherTimer _subscriptionRenewalTimer;
     private bool _allowClose;
     private bool _loaded;
@@ -36,42 +35,95 @@ public partial class MainWindow : Window, IDisposable
         _viewModel = viewModel;
         _settingsService = settingsService;
         _settings = settings;
-        _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        _viewModel.FiveHour.PropertyChanged += Metric_PropertyChanged;
-        _viewModel.Weekly.PropertyChanged += Metric_PropertyChanged;
+        _viewModel.Options.PropertyChanged += Options_PropertyChanged;
+        foreach (var provider in _viewModel.Providers)
+        {
+            provider.PropertyChanged += Provider_PropertyChanged;
+            provider.FiveHour.PropertyChanged += Metric_PropertyChanged;
+            provider.Weekly.PropertyChanged += Metric_PropertyChanged;
+            provider.ModelLimit.PropertyChanged += Metric_PropertyChanged;
+        }
         _subscriptionRenewalTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         _subscriptionRenewalTimer.Tick += (_, _) => RefreshSubscriptionRenewal();
         RefreshSubscriptionRenewal();
 
-        _trayShowItem = new Forms.ToolStripMenuItem("表示／非表示", null, (_, _) => ToggleVisibility());
-        _trayLockItem = new Forms.ToolStripMenuItem("位置を固定", null, (_, _) => ToggleLock()) { CheckOnClick = false };
-        _trayClickThroughItem = new Forms.ToolStripMenuItem("クリックを透過", null, (_, _) => ToggleClickThrough()) { CheckOnClick = false };
-        _trayStartupItem = new Forms.ToolStripMenuItem("Windows起動時に開始", null, (_, _) => ToggleStartup()) { CheckOnClick = false };
-
-        var trayMenu = new Forms.ContextMenuStrip();
-        trayMenu.Items.AddRange([
-            _trayShowItem,
-            new Forms.ToolStripMenuItem("今すぐ更新", null, async (_, _) => await _viewModel.RefreshAsync()),
-            new Forms.ToolStripSeparator(),
-            _trayLockItem,
-            _trayClickThroughItem,
-            _trayStartupItem,
-            new Forms.ToolStripMenuItem("サブスク更新日を設定…", null, (_, _) => EditSubscriptionRenewal()),
-            new Forms.ToolStripSeparator(),
-            new Forms.ToolStripMenuItem("Codex Usageを開く", null, (_, _) => OpenUsagePage()),
-            new Forms.ToolStripMenuItem("終了", null, (_, _) => ExitApplication())
-        ]);
-        trayMenu.Opening += (_, _) => SyncMenuChecks();
+        _showItem = new Forms.ToolStripMenuItem("非表示", null, (_, _) => ToggleVisibility());
+        _menu = BuildMenu();
 
         _trayIcon = new Forms.NotifyIcon
         {
             Icon = Drawing.SystemIcons.Information,
-            Text = "Codex Usage Widget",
-            ContextMenuStrip = trayMenu,
+            Text = "Usage Widget (Codex / Claude)",
+            ContextMenuStrip = _menu,
             Visible = true
         };
         _trayIcon.DoubleClick += (_, _) => ToggleVisibility();
         Closing += Window_Closing;
+    }
+
+    /// <summary>ウィジェットの右クリックと通知領域アイコンで同じメニューを使う。</summary>
+    private Forms.ContextMenuStrip BuildMenu()
+    {
+        var options = _viewModel.Options;
+
+        var display = new Forms.ToolStripMenuItem("表示する項目");
+        display.DropDownItems.AddRange([
+            Toggle("Codex", () => options.ShowCodex, v => options.ShowCodex = v, () => options.ShowClaude),
+            Toggle("Claude", () => options.ShowClaude, v => options.ShowClaude = v, () => options.ShowCodex),
+            new Forms.ToolStripSeparator(),
+            Toggle("5時間枠", () => options.ShowFiveHour, v => options.ShowFiveHour = v, () => options.ShowWeekly),
+            Toggle("週間枠", () => options.ShowWeekly, v => options.ShowWeekly = v, () => options.ShowFiveHour),
+            Toggle("モデル別の週間枠（Fableなど）", () => options.ShowModelLimit, v => options.ShowModelLimit = v),
+            new Forms.ToolStripSeparator(),
+            Toggle("リセット時刻", () => options.ShowReset, v => options.ShowReset = v),
+            Toggle("ペース", () => options.ShowPace, v => options.ShowPace = v),
+            Toggle("サブスク更新日", () => options.ShowRenewal, v => options.ShowRenewal = v)
+        ]);
+        // 続けて切り替えられるよう、項目のクリックでは閉じない。
+        display.DropDown.Closing += (_, e) =>
+        {
+            if (e.CloseReason == Forms.ToolStripDropDownCloseReason.ItemClicked) e.Cancel = true;
+        };
+
+        var renewal = new Forms.ToolStripMenuItem("サブスク更新日を設定");
+        var usagePages = new Forms.ToolStripMenuItem("使用状況ページを開く");
+        foreach (var provider in _viewModel.Providers)
+        {
+            renewal.DropDownItems.Add(new Forms.ToolStripMenuItem($"{provider.Name}…", null, (_, _) => EditSubscriptionRenewal(provider)));
+            usagePages.DropDownItems.Add(new Forms.ToolStripMenuItem(provider.Name, null, (_, _) => OpenUsagePage(provider.UsagePageUrl)));
+        }
+
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.AddRange([
+            new Forms.ToolStripMenuItem("今すぐ更新", null, async (_, _) => await _viewModel.RefreshAsync()),
+            display,
+            new Forms.ToolStripSeparator(),
+            Toggle("位置を固定", () => _settings.Locked, v => { _settings.Locked = v; PersistSettings(); }),
+            Toggle("クリックを透過", () => _settings.ClickThrough, v => { _settings.ClickThrough = v; PersistSettings(); ApplyClickThrough(); }),
+            Toggle("Windows起動時に開始", StartupService.IsEnabled, SetStartup),
+            renewal,
+            new Forms.ToolStripSeparator(),
+            usagePages,
+            _showItem,
+            new Forms.ToolStripMenuItem("終了", null, (_, _) => ExitApplication())
+        ]);
+        menu.Opening += (_, _) => SyncMenuChecks();
+        return menu;
+    }
+
+    /// <param name="canTurnOff">falseを返す間はオフにできない（最後の1つを消さないため）。</param>
+    private Forms.ToolStripMenuItem Toggle(string text, Func<bool> get, Action<bool> set, Func<bool>? canTurnOff = null)
+    {
+        var item = new Forms.ToolStripMenuItem(text);
+        item.Click += (_, _) =>
+        {
+            var next = !get();
+            if (!next && canTurnOff?.Invoke() == false) return;
+            set(next);
+            item.Checked = get();
+        };
+        _menuCheckSyncs.Add(() => item.Checked = get());
+        return item;
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -94,7 +146,6 @@ public partial class MainWindow : Window, IDisposable
         ClampToWorkingArea();
         PersistSettings();
         ApplyClickThrough();
-        SyncMenuChecks();
         _subscriptionRenewalTimer.Start();
         await _viewModel.StartAsync();
         FitToContent();
@@ -110,6 +161,12 @@ public partial class MainWindow : Window, IDisposable
 
     private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) => SaveLocation();
 
+    private void Window_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _menu.Show(Forms.Cursor.Position);
+        e.Handled = true;
+    }
+
     private void Window_LocationChanged(object? sender, EventArgs e)
     {
         if (_loaded && WindowState == WindowState.Normal)
@@ -121,14 +178,33 @@ public partial class MainWindow : Window, IDisposable
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_loaded) ClampToWorkingArea();
+        if (!_loaded) return;
+        // 列の増減で幅が変わったとき、画面の右半分に置かれていれば右端を基準に保つ。
+        if (e.WidthChanged && e.PreviousSize.Width > 0)
+        {
+            var screen = Forms.Screen.FromPoint(new Drawing.Point((int)Left, (int)Top));
+            var center = Left + e.PreviousSize.Width / 2;
+            if (center > screen.WorkingArea.Left + screen.WorkingArea.Width / 2d)
+            {
+                Left -= e.NewSize.Width - e.PreviousSize.Width;
+            }
+        }
+        ClampToWorkingArea();
     }
 
-    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void Options_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MainViewModel.HasData) or
-            nameof(MainViewModel.StatusMessage) or
-            nameof(MainViewModel.SubscriptionRenewalValueText))
+        PersistSettings();
+        ScheduleFitToContent();
+    }
+
+    private void Provider_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ProviderViewModel.HasData) or
+            nameof(ProviderViewModel.StatusMessage) or
+            nameof(ProviderViewModel.IsEnabled) or
+            nameof(ProviderViewModel.RenewalText) or
+            nameof(ProviderViewModel.ModelLimitName))
         {
             ScheduleFitToContent();
         }
@@ -137,8 +213,8 @@ public partial class MainWindow : Window, IDisposable
     private void Metric_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(LimitViewModel.PercentText) or
-            nameof(LimitViewModel.PaceText) or
-            nameof(LimitViewModel.ResetDateText))
+            nameof(LimitViewModel.PaceShortText) or
+            nameof(LimitViewModel.ResetShortText))
         {
             ScheduleFitToContent();
         }
@@ -172,15 +248,6 @@ public partial class MainWindow : Window, IDisposable
         SaveLocation();
     }
 
-    private void ContextMenu_Opened(object sender, RoutedEventArgs e) => SyncMenuChecks();
-    private async void Refresh_Click(object sender, RoutedEventArgs e) => await _viewModel.RefreshAsync();
-    private void Lock_Click(object sender, RoutedEventArgs e) => ToggleLock();
-    private void ClickThrough_Click(object sender, RoutedEventArgs e) => ToggleClickThrough();
-    private void Startup_Click(object sender, RoutedEventArgs e) => ToggleStartup();
-    private void SubscriptionRenewal_Click(object sender, RoutedEventArgs e) => EditSubscriptionRenewal();
-    private void OpenUsage_Click(object sender, RoutedEventArgs e) => OpenUsagePage();
-    private void Exit_Click(object sender, RoutedEventArgs e) => ExitApplication();
-
     private void ToggleVisibility()
     {
         Dispatcher.Invoke(() =>
@@ -190,70 +257,54 @@ public partial class MainWindow : Window, IDisposable
         });
     }
 
-    private void ToggleLock()
+    private void SetStartup(bool enabled)
     {
-        _settings.Locked = !_settings.Locked;
+        _settings.StartWithWindows = StartupService.SetEnabled(enabled) ? enabled : StartupService.IsEnabled();
         PersistSettings();
-        SyncMenuChecks();
     }
 
-    private void ToggleClickThrough()
-    {
-        _settings.ClickThrough = !_settings.ClickThrough;
-        PersistSettings();
-        ApplyClickThrough();
-        SyncMenuChecks();
-    }
-
-    private void ToggleStartup()
-    {
-        _settings.StartWithWindows = !_settings.StartWithWindows;
-        if (!StartupService.SetEnabled(_settings.StartWithWindows))
-        {
-            _settings.StartWithWindows = StartupService.IsEnabled();
-        }
-        PersistSettings();
-        SyncMenuChecks();
-    }
-
-    private void EditSubscriptionRenewal()
+    private void EditSubscriptionRenewal(ProviderViewModel provider)
     {
         if (!Dispatcher.CheckAccess())
         {
-            Dispatcher.Invoke(EditSubscriptionRenewal);
+            Dispatcher.Invoke(() => EditSubscriptionRenewal(provider));
             return;
         }
 
-        var dialog = new SubscriptionRenewalDialog(_settings.SubscriptionRenewalAt);
+        var dialog = new SubscriptionRenewalDialog(provider.Name, _settings.GetRenewal(provider.Kind).At);
         if (IsVisible) dialog.Owner = this;
         if (dialog.ShowDialog() != true) return;
 
-        _settings.SubscriptionRenewalAt = dialog.RenewalAt;
-        _settings.SubscriptionRenewalDay = dialog.RenewalAt?.Day;
+        _settings.SetRenewal(provider.Kind, dialog.RenewalAt, dialog.RenewalAt?.Day);
         RefreshSubscriptionRenewal();
-        ScheduleFitToContent();
+        PersistSettings();
     }
 
     private void RefreshSubscriptionRenewal()
     {
-        if (_settings.SubscriptionRenewalAt is not DateTime renewalAt)
+        var changed = false;
+        foreach (var provider in _viewModel.Providers)
         {
-            var clearDay = _settings.SubscriptionRenewalDay is not null;
-            _settings.SubscriptionRenewalDay = null;
-            _viewModel.SetSubscriptionRenewal(null);
-            if (clearDay) PersistSettings();
-            return;
-        }
+            var (at, day) = _settings.GetRenewal(provider.Kind);
+            if (at is not DateTime renewalAt)
+            {
+                if (day is not null)
+                {
+                    _settings.SetRenewal(provider.Kind, null, null);
+                    changed = true;
+                }
+                provider.SetRenewal(null);
+                continue;
+            }
 
-        var schedule = SubscriptionRenewalSchedule.AdvanceToFuture(
-            renewalAt,
-            _settings.SubscriptionRenewalDay,
-            DateTime.Now);
-        var changed = _settings.SubscriptionRenewalAt != schedule.NextRenewalAt ||
-            _settings.SubscriptionRenewalDay != schedule.AnchorDay;
-        _settings.SubscriptionRenewalAt = schedule.NextRenewalAt;
-        _settings.SubscriptionRenewalDay = schedule.AnchorDay;
-        _viewModel.SetSubscriptionRenewal(schedule.NextRenewalAt);
+            var schedule = SubscriptionRenewalSchedule.AdvanceToFuture(renewalAt, day, DateTime.Now);
+            if (renewalAt != schedule.NextRenewalAt || day != schedule.AnchorDay)
+            {
+                _settings.SetRenewal(provider.Kind, schedule.NextRenewalAt, schedule.AnchorDay);
+                changed = true;
+            }
+            provider.SetRenewal(schedule.NextRenewalAt);
+        }
         if (changed) PersistSettings();
     }
 
@@ -261,13 +312,8 @@ public partial class MainWindow : Window, IDisposable
     {
         Dispatcher.Invoke(() =>
         {
-            LockMenuItem.IsChecked = _settings.Locked;
-            ClickThroughMenuItem.IsChecked = _settings.ClickThrough;
-            StartupMenuItem.IsChecked = StartupService.IsEnabled();
-            _trayLockItem.Checked = _settings.Locked;
-            _trayClickThroughItem.Checked = _settings.ClickThrough;
-            _trayStartupItem.Checked = StartupService.IsEnabled();
-            _trayShowItem.Text = IsVisible ? "非表示" : "表示";
+            foreach (var sync in _menuCheckSyncs) sync();
+            _showItem.Text = IsVisible ? "非表示" : "表示";
         });
     }
 
@@ -280,11 +326,11 @@ public partial class MainWindow : Window, IDisposable
         SetWindowLong(handle, GwlExStyle, style);
     }
 
-    private static void OpenUsagePage()
+    private static void OpenUsagePage(string url)
     {
         try
         {
-            Process.Start(new ProcessStartInfo("https://chatgpt.com/codex/settings/usage") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
         catch { }
     }
@@ -338,12 +384,18 @@ public partial class MainWindow : Window, IDisposable
     public void Dispose()
     {
         _subscriptionRenewalTimer.Stop();
-        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
-        _viewModel.FiveHour.PropertyChanged -= Metric_PropertyChanged;
-        _viewModel.Weekly.PropertyChanged -= Metric_PropertyChanged;
+        _viewModel.Options.PropertyChanged -= Options_PropertyChanged;
+        foreach (var provider in _viewModel.Providers)
+        {
+            provider.PropertyChanged -= Provider_PropertyChanged;
+            provider.FiveHour.PropertyChanged -= Metric_PropertyChanged;
+            provider.Weekly.PropertyChanged -= Metric_PropertyChanged;
+            provider.ModelLimit.PropertyChanged -= Metric_PropertyChanged;
+        }
         _viewModel.Dispose();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
+        _menu.Dispose();
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
