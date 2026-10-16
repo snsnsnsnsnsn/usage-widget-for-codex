@@ -1,9 +1,7 @@
-using System.Windows;
+﻿using System.Windows;
 using CodexUsageWidget.App.Models;
 using CodexUsageWidget.App.Services;
 using CodexUsageWidget.App.ViewModels;
-using Color = System.Windows.Media.Color;
-using SolidColorBrush = System.Windows.Media.SolidColorBrush;
 
 namespace CodexUsageWidget.App;
 
@@ -31,7 +29,6 @@ public partial class App : System.Windows.Application
         var codex = new ProviderViewModel(
             ProviderKind.Codex,
             "Codex",
-            new SolidColorBrush(Color.FromRgb(16, 163, 127)),
             "https://chatgpt.com/codex/settings/usage",
             new CodexUsageService(new AppServerUsageProvider(), new LocalSessionUsageProvider()),
             TimeSpan.FromSeconds(Math.Clamp(settings.RefreshSeconds, 15, 300)),
@@ -39,7 +36,6 @@ public partial class App : System.Windows.Application
         var claude = new ProviderViewModel(
             ProviderKind.Claude,
             "Claude",
-            new SolidColorBrush(Color.FromRgb(217, 119, 87)),
             "https://claude.ai/settings/usage",
             new ClaudeUsageProvider(),
             TimeSpan.FromSeconds(Math.Clamp(settings.ClaudeRefreshSeconds, 60, 900)),

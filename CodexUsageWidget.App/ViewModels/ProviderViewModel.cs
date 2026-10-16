@@ -1,7 +1,6 @@
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 using CodexUsageWidget.App.Models;
 using CodexUsageWidget.App.Services;
-using Brush = System.Windows.Media.Brush;
 
 namespace CodexUsageWidget.App.ViewModels;
 
@@ -28,7 +27,6 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     public ProviderViewModel(
         ProviderKind kind,
         string name,
-        Brush brandBrush,
         string usagePageUrl,
         IUsageProvider provider,
         TimeSpan refreshInterval,
@@ -36,7 +34,6 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
     {
         Kind = kind;
         Name = name;
-        BrandBrush = brandBrush;
         UsagePageUrl = usagePageUrl;
         Options = options;
         _provider = provider;
@@ -49,7 +46,6 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
 
     public ProviderKind Kind { get; }
     public string Name { get; }
-    public Brush BrandBrush { get; }
     public string UsagePageUrl { get; }
     public DisplayOptions Options { get; }
     public LimitViewModel FiveHour { get; }
@@ -156,6 +152,7 @@ public sealed class ProviderViewModel : NotifyBase, IDisposable
             AddLimitLine("5h", FiveHour);
             AddLimitLine("週", Weekly);
             if (ModelLimitName is not null) AddLimitLine($"{ModelLimitName}（週間）", ModelLimit);
+            lines.Add("ゲージ: 塗り = 残り利用量、縦線 = 残り時間。塗りが縦線より右なら余裕");
             lines.Add("ペース: 今のペースを続けた場合の、リセット時点の消費率（100%超で使い切る見込み）");
         }
         return string.Join(Environment.NewLine, lines);

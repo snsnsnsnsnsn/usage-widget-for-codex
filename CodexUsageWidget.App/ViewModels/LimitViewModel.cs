@@ -1,4 +1,4 @@
-using CodexUsageWidget.App.Models;
+﻿using CodexUsageWidget.App.Models;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using SolidColorBrush = System.Windows.Media.SolidColorBrush;
@@ -18,6 +18,9 @@ public sealed class LimitViewModel : NotifyBase
     private string _percentText = "--%";
     private string _windowLabel = string.Empty;
     private Brush _accentBrush = Neutral;
+    private Brush _gaugeBrush = Neutral;
+    private double _timeRemainingPercent = double.NaN;
+    private int _windowMinutes;
     private string _paceShortText = string.Empty;
     private Brush _paceBrush = Neutral;
     private string _resetShortText = string.Empty;
@@ -35,6 +38,10 @@ public sealed class LimitViewModel : NotifyBase
     /// <summary>行ラベルと長さが違う枠（例: 30日枠）のときだけ出す。</summary>
     public string WindowLabel { get => _windowLabel; private set => Set(ref _windowLabel, value); }
     public Brush AccentBrush { get => _accentBrush; private set => Set(ref _accentBrush, value); }
+    /// <summary>ゲージの塗り色。ペースが分かればペースの色、まだ分からなければ残量の色。</summary>
+    public Brush GaugeBrush { get => _gaugeBrush; private set => Set(ref _gaugeBrush, value); }
+    /// <summary>リセットまでの残り時間の割合（0〜100）。ゲージの縦線の位置。不明ならNaN。</summary>
+    public double TimeRemainingPercent { get => _timeRemainingPercent; private set => Set(ref _timeRemainingPercent, value); }
     public string PaceShortText { get => _paceShortText; private set => Set(ref _paceShortText, value); }
     public Brush PaceBrush { get => _paceBrush; private set => Set(ref _paceBrush, value); }
     /// <summary>24時間以内なら時刻、それより先なら日付だけ。</summary>
@@ -57,7 +64,10 @@ public sealed class LimitViewModel : NotifyBase
             ResetDateText = "--/-- --:--";
             ResetShortText = string.Empty;
             ResetText = "利用枠なし";
+            GaugeBrush = Neutral;
+            TimeRemainingPercent = double.NaN;
             _resetsAt = null;
+            _windowMinutes = 0;
             return;
         }
 
@@ -71,8 +81,11 @@ public sealed class LimitViewModel : NotifyBase
             _ => Bad
         };
         _resetsAt = window.ResetsAt;
+        _windowMinutes = window.WindowMinutes;
         ResetDateText = _resetsAt?.ToLocalTime().ToString("MM/dd HH:mm") ?? "--/-- --:--";
-        UpdatePace(window.ProjectedConsumptionPercent(observedAt));
+        var projected = window.ProjectedConsumptionPercent(observedAt);
+        UpdatePace(projected);
+        GaugeBrush = projected is null ? AccentBrush : PaceBrush;
         UpdateCountdown();
     }
 
@@ -100,10 +113,14 @@ public sealed class LimitViewModel : NotifyBase
         if (_resetsAt is not DateTimeOffset resetsAt)
         {
             if (PercentText != "--%") ResetText = "リセット時刻なし";
+            TimeRemainingPercent = double.NaN;
             return;
         }
 
         var remaining = resetsAt - DateTimeOffset.UtcNow;
+        TimeRemainingPercent = _windowMinutes > 0
+            ? Math.Round(Math.Clamp(remaining.TotalMinutes / _windowMinutes * 100d, 0d, 100d), 1)
+            : double.NaN;
         var local = resetsAt.ToLocalTime();
         ResetShortText = remaining.TotalDays < 1 ? local.ToString("HH:mm") : local.ToString("MM/dd");
         ResetText = remaining <= TimeSpan.Zero ? "更新を確認中…" :

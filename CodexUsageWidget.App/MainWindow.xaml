@@ -31,16 +31,16 @@
                     <RowDefinition Height="Auto" SharedSizeGroup="Renewal"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="1" Text="5h" Foreground="{StaticResource TextLabel}"
-                           FontSize="11" FontWeight="SemiBold" Margin="0,1,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
                            Visibility="{Binding Options.ShowFiveHour, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="2" Text="週" Foreground="{StaticResource TextLabel}"
-                           FontSize="11" FontWeight="SemiBold" Margin="0,1,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
                            Visibility="{Binding Options.ShowWeekly, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="3" Text="{Binding ModelRowLabel, Mode=OneWay}" Foreground="{StaticResource TextLabel}"
-                           FontSize="11" FontWeight="SemiBold" Margin="0,1,0,0"
+                           FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
                            Visibility="{Binding ShowModelRow, Converter={StaticResource BoolToVisibility}}"/>
                 <TextBlock Grid.Row="4" Text="更新" Foreground="{StaticResource TextLabel}"
-                           FontSize="11" Margin="0,3,0,2" VerticalAlignment="Center"
+                           FontSize="12" Margin="0,3,0,2" VerticalAlignment="Center"
                            Visibility="{Binding ShowRenewalRow, Converter={StaticResource BoolToVisibility}}"/>
             </Grid>
 
@@ -52,7 +52,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid MinWidth="84" Margin="16,0,0,0" Background="Transparent"
+                        <Grid MinWidth="116" Margin="16,0,0,0" Background="Transparent"
                               Visibility="{Binding IsEnabled, Converter={StaticResource BoolToVisibility}}"
                               ToolTip="{Binding DetailText, Mode=OneWay}" ToolTipService.ShowDuration="30000">
                             <Grid.RowDefinitions>
@@ -63,12 +63,9 @@
                                 <RowDefinition Height="Auto" SharedSizeGroup="Renewal"/>
                             </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,1">
-                                <Ellipse Width="6" Height="6" Fill="{Binding BrandBrush}"
-                                         Margin="0,1,5,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextPrimary}"
-                                           FontSize="13" FontWeight="SemiBold"/>
-                            </StackPanel>
+                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextPrimary}"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,0,0,2"/>
 
                             <ContentControl Grid.Row="1" Content="{Binding FiveHour}" Focusable="False"
                                             ContentTemplate="{StaticResource LimitCell}">
@@ -110,7 +107,7 @@
 
                             <!-- 取得できないときは枠2つ分の場所に理由だけを出す -->
                             <TextBlock Grid.Row="1" Grid.RowSpan="2" Text="{Binding StatusMessage, Mode=OneWay}"
-                                       Foreground="#D7DDE5" FontSize="11" TextWrapping="Wrap" MaxWidth="96"
+                                       Foreground="#D7DDE5" FontSize="12" TextWrapping="Wrap" MaxWidth="110"
                                        HorizontalAlignment="Right" TextAlignment="Right"
                                        VerticalAlignment="Center" Margin="0,6,0,6">
                                 <TextBlock.Style>
@@ -146,7 +143,7 @@
                             </ContentControl>
 
                             <TextBlock Grid.Row="4" Text="{Binding RenewalText, Mode=OneWay}"
-                                       Foreground="#D7DDE5" FontSize="11" Margin="0,3,0,2"
+                                       Foreground="#D7DDE5" FontSize="12" Margin="0,3,0,2"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"
                                        Visibility="{Binding DataContext.ShowRenewalRow,
                                                     RelativeSource={RelativeSource AncestorType=Window},
